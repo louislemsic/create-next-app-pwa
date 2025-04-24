@@ -5,7 +5,7 @@ import path from 'path';
 const iconPath = path.resolve(__dirname, '../src', 'icon.svg');
 const functionsPath = path.resolve(__dirname, '../src', 'functions.ts');
 const manifestPath = path.resolve(__dirname, '../src', 'manifest.json');
-const configPath = path.resolve(__dirname, '../src', 'next.config.mjs');
+const configPath = path.resolve(__dirname, '../src', 'next.config.ts');
 
 suite('File: icon.svg', () => {
     test('it should exist', () => {
@@ -91,7 +91,7 @@ suite('File: manifest.json', () => {
     });
 });
 
-suite('File: next.config.mjs', () => {
+suite('File: next.config.ts', () => {
     test('it should exist', () => {
         expect(fs.existsSync(configPath)).toBe(true);
     });

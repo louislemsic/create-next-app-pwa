@@ -13,6 +13,9 @@ This will follow the standard `create-next-app` command so this means that you w
 ```
 After answering the questions, it will start the installation process. It's like installing a normal Next.js app.
 
+> [!NOTE]
+> The creator of this script suggests adding a `--skip` flag to the command. Because we already know what we want.
+
 ## Describing the Script
 
 > [!IMPORTANT]

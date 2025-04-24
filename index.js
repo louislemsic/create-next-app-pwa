@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getProjectName, updateLayoutMetadata } from './src/functions.ts';
+import { getProjectName, updateLayoutMetadata } from './src/functions.js';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -19,11 +19,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 console.clear();
 console.log('Creating a new Next.js app with PWA setup...');
 
-// Get the project name from the command line arguments or prompt the user
+// Get the project name from the command line arguments
 const projectName = await getProjectName();
 
-// Run the create-next-app command with prompts
-execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint`, { stdio: 'inherit' });
+// Check if --skip flag is provided
+const skipFlag = process.argv.includes('--skip');
+
+// Run the create-next-app command with or without predefined options
+if (skipFlag) {
+    console.log('Using preconfigured setup with TypeScript, Tailwind, src directory, and no ESLint...');
+    execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint`, { stdio: 'inherit' });
+} else {
+    console.log('Running create-next-app with interactive prompts...');
+    execSync(`npx create-next-app@latest ${projectName}`, { stdio: 'inherit' });
+}
 
 const projectPath = path.join(process.cwd(), projectName);
 

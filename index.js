@@ -23,14 +23,14 @@ console.log('Creating a new Next.js app with PWA setup...');
 const projectName = await getProjectName();
 
 // Run the create-next-app command with prompts
-execSync(`npx create-next-app@latest ${projectName}`, { stdio: 'inherit' });
+execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint`, { stdio: 'inherit' });
 
 const projectPath = path.join(process.cwd(), projectName);
 
-// Copy `next.config.js` from src to the new project
+// Copy `next.config.ts` from src to the new project
 fs.copyFileSync(
-    path.join(__dirname, 'src', 'next.config.mjs'),
-    path.join(projectPath, 'next.config.mjs')
+    path.join(__dirname, 'src', 'next.config.ts'),
+    path.join(projectPath, 'next.config.ts')
 );
 
 // Install @serwist/next and serwist as dependencies

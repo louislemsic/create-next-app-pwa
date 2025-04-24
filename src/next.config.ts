@@ -1,8 +1,8 @@
+import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    // Your Next.js configuration here
+const nextConfig: NextConfig = {
+  /* config options here */
 };
 
 /** DO NOT TOUCH */

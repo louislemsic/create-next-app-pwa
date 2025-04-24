@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getProjectName, updateLayoutMetadata } from './src/functions.js';
+import { getProjectName, updateLayoutMetadata } from "./src/functions.js";
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -28,7 +28,7 @@ const skipFlag = process.argv.includes('--skip');
 // Run the create-next-app command with or without predefined options
 if (skipFlag) {
     console.log('Using preconfigured setup with TypeScript, Tailwind, src directory, and no ESLint...');
-    execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint`, { stdio: 'inherit' });
+    execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint --app --no-import-alias`, { stdio: 'inherit' });
 } else {
     console.log('Running create-next-app with interactive prompts...');
     execSync(`npx create-next-app@latest ${projectName}`, { stdio: 'inherit' });

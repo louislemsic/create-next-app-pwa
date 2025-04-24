@@ -1,6 +1,6 @@
 {
   "name": "create-next-app-pwa",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "The script for the npx create-next-app-pwa command. Making it easier for everyone to create a Next.js Progressive Web App.",
   "main": "index.js",
   "type": "module",

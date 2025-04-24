@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 const iconPath = path.resolve(__dirname, '../src', 'icon.svg');
-const functionsPath = path.resolve(__dirname, '../src', 'functions.ts');
+const functionsPath = path.resolve(__dirname, '../src', 'functions.js');
 const manifestPath = path.resolve(__dirname, '../src', 'manifest.json');
 const configPath = path.resolve(__dirname, '../src', 'next.config.ts');
 
@@ -20,7 +20,7 @@ suite('File: icon.svg', () => {
     });
 });
 
-suite('File: functions.ts', () => {
+suite('File: functions.js', () => {
     test('it should exist', () => {
         expect(fs.existsSync(functionsPath)).toBe(true);
     });

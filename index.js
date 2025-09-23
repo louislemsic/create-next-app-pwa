@@ -36,11 +36,24 @@ if (skipFlag) {
 
 const projectPath = path.join(process.cwd(), projectName);
 
-// Copy `next.config.ts` from src to the new project
-fs.copyFileSync(
-    path.join(__dirname, 'src', 'next.config.ts'),
-    path.join(projectPath, 'next.config.ts')
-);
+// Check if next.config.mjs already exists, if so copy next.config.mjs, otherwise copy next.config.ts
+const existingConfigMjs = path.join(projectPath, 'next.config.mjs');
+
+if (fs.existsSync(existingConfigMjs)) {
+    // Copy `next.config.mjs` from src to overwrite the existing one
+    fs.copyFileSync(
+        path.join(__dirname, 'src', 'next.config.mjs'),
+        path.join(projectPath, 'next.config.mjs')
+    );
+    console.log('Updated next.config.mjs with PWA configuration');
+} else {
+    // Copy `next.config.ts` from src to the new project
+    fs.copyFileSync(
+        path.join(__dirname, 'src', 'next.config.ts'),
+        path.join(projectPath, 'next.config.ts')
+    );
+    console.log('Added next.config.ts with PWA configuration');
+}
 
 // Install @serwist/next and serwist as dependencies
 console.log('Installing @serwist/next and serwist...');

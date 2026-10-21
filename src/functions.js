@@ -18,6 +18,20 @@ const metadata = {
 };
 `;
 
+export const serwistImport = `import withSerwistInit from "@serwist/next";`;
+
+export const serwistExport = `/**
+ * This is the configuration for the Serwist service worker
+ * that transforms the Next.js application into a PWA
+ */
+const withSerwist = withSerwistInit({
+  swSrc: "sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
+});
+
+export default withSerwist(nextConfig);`;
+
 // Function to check if the project name is valid
 export function isValidProjectName(name) {
     return /^[a-zA-Z0-9-_]+$/.test(name);
@@ -88,5 +102,126 @@ export async function updateLayoutMetadata(projectPath) {
             
             break; // Exit after the first match
         }
+    }
+}
+
+function ensureSerwistImport(fileContent) {
+    if (/from\s+["']@serwist\/next["']/.test(fileContent)) {
+        return fileContent;
+    }
+
+    const importMatches = [...fileContent.matchAll(/^import .+$/gm)];
+    if (importMatches.length > 0) {
+        const lastImport = importMatches[importMatches.length - 1];
+        const insertAt = lastImport.index + lastImport[0].length;
+        return `${fileContent.slice(0, insertAt)}\n${serwistImport}${fileContent.slice(insertAt)}`;
+    }
+
+    return `${serwistImport}\n\n${fileContent}`;
+}
+
+function ensureTurbopack(fileContent) {
+    if (/turbopack\s*:/.test(fileContent)) {
+        return fileContent;
+    }
+
+    const emptyNextConfig = /const nextConfig(?:\s*:\s*[^{\n=]+)?\s*=\s*\{\s*\}/;
+    if (emptyNextConfig.test(fileContent)) {
+        return fileContent.replace(emptyNextConfig, (match) =>
+            match.replace(/\{\s*\}/, '{\n  turbopack: {},\n}')
+        );
+    }
+
+    return fileContent.replace(
+        /(const nextConfig(?:\s*:\s*[^{\n=]+)?\s*=\s*\{)/,
+        '$1\n  turbopack: {},'
+    );
+}
+
+function replaceDefaultExport(fileContent) {
+    if (/export\s+default\s+withSerwist\s*\(\s*nextConfig\s*\)/.test(fileContent)) {
+        return fileContent;
+    }
+
+    if (/export\s+default\s+nextConfig;?/.test(fileContent)) {
+        return fileContent.replace(/export\s+default\s+nextConfig;?/, serwistExport);
+    }
+
+    return `${fileContent.trimEnd()}\n\n${serwistExport}\n`;
+}
+
+export function updateNextConfig(projectPath) {
+    const possiblePaths = [
+        path.join(projectPath, 'next.config.ts'),
+        path.join(projectPath, 'next.config.mjs'),
+        path.join(projectPath, 'next.config.js'),
+    ];
+
+    for (const filePath of possiblePaths) {
+        if (fs.existsSync(filePath)) {
+            let fileContent = fs.readFileSync(filePath, 'utf8');
+
+            fileContent = ensureSerwistImport(fileContent);
+            fileContent = ensureTurbopack(fileContent);
+            fileContent = replaceDefaultExport(fileContent);
+
+            fs.writeFileSync(filePath, fileContent, 'utf8');
+            console.log(`Updated ${path.basename(filePath)} with PWA configuration`);
+
+            break;
+        }
+    }
+}
+
+export function copyPublicFolder(projectPath, templatePublicDir) {
+    const publicDir = path.join(projectPath, 'public');
+
+    if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+    }
+
+    fs.cpSync(templatePublicDir, publicDir, { recursive: true });
+    console.log('Updated public/ with PWA assets');
+}
+
+export function updateHomePage(projectPath, packageRoot) {
+    const possiblePaths = [
+        path.join(projectPath, 'src', 'app', 'page.tsx'),
+        path.join(projectPath, 'app', 'page.tsx'),
+        path.join(projectPath, 'src', 'app', 'page.js'),
+        path.join(projectPath, 'app', 'page.js'),
+    ];
+
+    for (const filePath of possiblePaths) {
+        if (!fs.existsSync(filePath)) {
+            continue;
+        }
+
+        const isTs = filePath.endsWith('.tsx');
+        const componentName = isTs ? 'install-button.tsx' : 'install-button.js';
+
+        fs.copyFileSync(
+            path.join(packageRoot, 'src', componentName),
+            path.join(path.dirname(filePath), componentName)
+        );
+
+        let fileContent = fs.readFileSync(filePath, 'utf8');
+
+        if (!fileContent.includes('InstallButton')) {
+            fileContent = fileContent.replace(
+                /import Image from ["']next\/image["'];?/,
+                (match) => `${match}\nimport { InstallButton } from "./install-button";`
+            );
+
+            fileContent = fileContent.replace(
+                /<a[\s\S]*?Deploy Now\s*<\/a>/,
+                '<InstallButton />'
+            );
+        }
+
+        fs.writeFileSync(filePath, fileContent, 'utf8');
+        console.log(`Updated ${path.basename(filePath)} with an Install button`);
+
+        break;
     }
 }

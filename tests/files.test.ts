@@ -2,21 +2,44 @@ import { suite, expect, test } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const iconPath = path.resolve(__dirname, '../src', 'icon.svg');
+const publicDir = path.resolve(__dirname, '../src', 'public');
+const iconPath = path.join(publicDir, 'svgs', 'icon.svg');
+const installIconPath = path.join(publicDir, 'svgs', 'install.svg');
+const screenshotPath = path.join(publicDir, 'screenshots', '1.webp');
 const functionsPath = path.resolve(__dirname, '../src', 'functions.js');
-const manifestPath = path.resolve(__dirname, '../src', 'manifest.json');
-const configPath = path.resolve(__dirname, '../src', 'next.config.ts');
+const manifestPath = path.join(publicDir, 'manifest.json');
+const installButtonTsPath = path.resolve(__dirname, '../src', 'install-button.tsx');
+const installButtonJsPath = path.resolve(__dirname, '../src', 'install-button.js');
 
-suite('File: icon.svg', () => {
+suite('File: public/', () => {
     test('it should exist', () => {
-        console.log(iconPath);
-        
-        expect(fs.existsSync(iconPath)).toBe(true);
+        expect(fs.existsSync(publicDir)).toBe(true);
     });
 
-    test('it should be a valid SVG', () => {
+    test('it should include the PWA icon', () => {
+        expect(fs.existsSync(iconPath)).toBe(true);
         const svgContent = fs.readFileSync(iconPath, 'utf-8');
         expect(svgContent).toMatch(/<svg[^>]*>([\s\S]*?)<\/svg>/);
+    });
+
+    test('it should include a screenshot', () => {
+        expect(fs.existsSync(screenshotPath)).toBe(true);
+    });
+
+    test('it should include the install icon', () => {
+        expect(fs.existsSync(installIconPath)).toBe(true);
+        const svgContent = fs.readFileSync(installIconPath, 'utf-8');
+        expect(svgContent).toMatch(/<svg[^>]*>([\s\S]*?)<\/svg>/);
+    });
+});
+
+suite('File: install-button', () => {
+    test('it should include a TypeScript component', () => {
+        expect(fs.existsSync(installButtonTsPath)).toBe(true);
+    });
+
+    test('it should include a JavaScript component', () => {
+        expect(fs.existsSync(installButtonJsPath)).toBe(true);
     });
 });
 
@@ -40,6 +63,13 @@ interface Manifest {
     background_color: string;
     start_url: string;
     display: string;
+    screenshots: {
+        src: string;
+        sizes: string;
+        type: string;
+        form_factor: string;
+        label: string;
+    }[];
 }
 
 suite('File: manifest.json', () => {
@@ -89,20 +119,10 @@ suite('File: manifest.json', () => {
     test('it should have a display attribute', () => {
         expect(manifest).toHaveProperty('display');
     });
-});
 
-suite('File: next.config.ts', () => {
-    test('it should exist', () => {
-        expect(fs.existsSync(configPath)).toBe(true);
-    });
-
-    test('it should set the correct src for the service worker', () => {
-        const configContent = fs.readFileSync(configPath, 'utf-8');
-        expect(configContent).toMatch(/swSrc:\s*"sw\.ts"/);
-    });
-
-    test('it should set the correct dest for the service worker', () => {
-        const configContent = fs.readFileSync(configPath, 'utf-8');
-        expect(configContent).toMatch(/swDest:\s*"public\/sw\.js"/);
+    test('it should have a screenshots attribute', () => {
+        expect(manifest).toHaveProperty('screenshots');
+        expect(Array.isArray(manifest.screenshots)).toBe(true);
+        expect(manifest.screenshots.length).toBeGreaterThan(0);
     });
 });

@@ -1,35 +1,31 @@
 # Create Next.js Progressive Web App
 The script for the `npx create-next-app-pwa` command. Making it easier for everyone to create a Next.js Progressive Web App using a simple command. This is made possible by the service worker made by [serwist](https://github.com/serwist/serwist) (see dependencies below).
 
-## Installation
+## ⬇️ Installation
 It's easy. Just run the following command in your terminal:
 ```bash
 npx create-next-app-pwa [project-name]
 ```
 
-This will follow the standard `create-next-app` command so this means that you will be asked a couple of questions like the following below.
+This will follow the latest `create-next-app` command; so this means that you will be asked a couple of questions like the following below.
 ```
 ✔ Would you like to use TypeScript? … No / Yes
 ```
-After answering the questions, it will start the installation process. It's like installing a normal Next.js app.
+The experience should be the same in creating a Next.js app (just that this time, it's a PWA)
 
-> [!NOTE]
-> The creator of this script suggests adding a `--skip` flag to the command. Because we already know what we want.
+## 📦 Describing the Script
 
-## Describing the Script
+It's a super straightforward process.
 
-> [!IMPORTANT]
-> The following information is only describing the script. <u>You don't need</u> to do them. This is just for transparency and accountabilty.
+1. Run `npx create-next-app@latest`
+2. Add serwist files like `sw.ts` that transforms the project into a PWA.
+3. Add `public/manifest.json` (and other files) as it is needed for the browser to consider the project as a PWA
+4. Modify `layout.tsx` to include the manifest.
 
-After initializing the Next.js app, the following files will be then added:
-- `next.config.mjs` - The configuration file for the Next.js app to align with the Progressive Web App.
-- `public/manifest.json` - The manifest file as a requirement for a Progressive Web App.
-- `public/favicon.ico` - The favicon, likewise, a requirement for a Progressive Web App.
+That's basically it. As dumb as it gets.
 
-The script then edits the `layout.tsx` file and adds the manifest attribute to the `metadata` object.
-
-## Dependencies
+## 🧱 Dependencies
 The script also installs [`@serwist/next`](https://www.npmjs.com/package/@serwist/next) and [`serwist`](https://www.npmjs.com/package/serwist) as dependencies. This is the service worker that enable your Next.js app to be a Progressive Web App.
 
-## License
+## 🪪 License
 This project is licensed under the MIT License. See the LICENSE file for more details.

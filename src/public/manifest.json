@@ -1,0 +1,40 @@
+{
+    "name": "Next.js PWA",
+    "short_name": "NextPWA",
+    "description": "Welcome to the Next.js Progressive Web App template repository!",
+    "icons": [
+        {
+          "src": "/svgs/icon.svg",
+          "sizes": "512x512",
+          "type": "image/svg+xml",
+          "purpose": "any"
+        }
+      ],
+    "theme_color": "#FFFFFF",
+    "background_color": "#FFFFFF",
+    "start_url": "/",
+    "display": "standalone",
+    "screenshots": [
+    {
+      "src": "/screenshots/1.webp",
+      "sizes": "1080x1920",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "A very descriptive sentence about the screenshot."
+    },
+    {
+      "src": "/screenshots/1.webp",
+      "sizes": "1080x1920",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Another descriptive sentence about the screenshot."
+    },
+    {
+      "src": "/screenshots/1.webp",
+      "sizes": "1080x1920",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Last descriptive sentence about the screenshot."
+    }
+  ]
+}

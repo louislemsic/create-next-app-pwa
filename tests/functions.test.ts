@@ -1,5 +1,5 @@
 import { expect, test, suite, beforeEach, vi } from 'vitest'
-import { isValidProjectName, getProjectName, promptForProjectName, updateLayoutMetadata } from '../src/functions'
+import { isValidProjectName, getProjectName, promptForProjectName, updateLayoutMetadata, updateNextConfig, copyPublicFolder, updateHomePage, serwistExport, serwistImport } from '../src/functions'
 import path from 'path'
 import fs from 'fs'
 
@@ -100,5 +100,162 @@ suite('Function: updateLayoutMetadata', () => {
         expect(fs.existsSync).toHaveBeenCalledWith(filePath);
         expect(fs.readFileSync).toHaveBeenCalledWith(filePath, 'utf8');
         expect(fs.writeFileSync).toHaveBeenCalledWith(filePath, expect.stringContaining(mockMetadataJS.trim()), 'utf8');
+    });
+});
+
+suite('Function: updateNextConfig', () => {
+    const projectPath = '/mock/project';
+    const tsConfigPath = path.join(projectPath, 'next.config.ts');
+    const mjsConfigPath = path.join(projectPath, 'next.config.mjs');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    test('should inject turbopack and Serwist into next.config.ts', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(true);
+        vi.mocked(fs.readFileSync).mockReturnValueOnce(`import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+`);
+
+        updateNextConfig(projectPath);
+
+        expect(fs.existsSync).toHaveBeenCalledWith(tsConfigPath);
+        expect(fs.writeFileSync).toHaveBeenCalledWith(
+            tsConfigPath,
+            expect.stringContaining(serwistImport),
+            'utf8'
+        );
+
+        const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
+        expect(writtenContent).toContain('turbopack: {},');
+        expect(writtenContent).toContain(serwistExport);
+        expect(writtenContent).not.toMatch(/export default nextConfig;?/);
+        expect(writtenContent).toContain('/* config options here */');
+    });
+
+    test('should inject turbopack and Serwist into next.config.mjs', () => {
+        vi.mocked(fs.existsSync)
+            .mockReturnValueOnce(false)
+            .mockReturnValueOnce(true);
+        vi.mocked(fs.readFileSync).mockReturnValueOnce(`/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+`);
+
+        updateNextConfig(projectPath);
+
+        expect(fs.existsSync).toHaveBeenCalledWith(mjsConfigPath);
+        const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
+        expect(writtenContent).toContain(serwistImport);
+        expect(writtenContent).toContain('turbopack: {},');
+        expect(writtenContent).toContain(serwistExport);
+        expect(writtenContent).not.toMatch(/export default nextConfig;?/);
+    });
+
+    test('should not add turbopack if it already exists', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(true);
+        vi.mocked(fs.readFileSync).mockReturnValueOnce(`import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    resolveAlias: {},
+  },
+};
+
+export default nextConfig;
+`);
+
+        updateNextConfig(projectPath);
+
+        const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
+        expect(writtenContent).toContain('resolveAlias: {},');
+        expect(writtenContent.match(/turbopack\s*:/g)).toHaveLength(1);
+        expect(writtenContent).toContain(serwistExport);
+    });
+});
+
+suite('Function: copyPublicFolder', () => {
+    const projectPath = '/mock/project';
+    const templatePublicDir = '/mock/template/public';
+    const publicDir = path.join(projectPath, 'public');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    test('should copy the template public folder into the project public directory', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(true);
+
+        copyPublicFolder(projectPath, templatePublicDir);
+
+        expect(fs.cpSync).toHaveBeenCalledWith(templatePublicDir, publicDir, { recursive: true });
+        expect(fs.mkdirSync).not.toHaveBeenCalled();
+    });
+
+    test('should create the public directory if it does not exist', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+
+        copyPublicFolder(projectPath, templatePublicDir);
+
+        expect(fs.mkdirSync).toHaveBeenCalledWith(publicDir, { recursive: true });
+        expect(fs.cpSync).toHaveBeenCalledWith(templatePublicDir, publicDir, { recursive: true });
+    });
+});
+
+suite('Function: updateHomePage', () => {
+    const projectPath = '/mock/project';
+    const packageRoot = '/mock/package';
+    const pagePath = path.join(projectPath, 'src', 'app', 'page.tsx');
+    const componentPath = path.join(projectPath, 'src', 'app', 'install-button.tsx');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    test('should replace the Deploy button with InstallButton in page.tsx', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(true);
+        vi.mocked(fs.readFileSync).mockReturnValueOnce(`import Image from "next/image";
+
+export default function Home() {
+  return (
+    <div>
+          <a
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background"
+            href="https://vercel.com/new"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Image
+              src="/vercel.svg"
+              alt="Vercel logomark"
+              width={16}
+              height={14}
+            />
+            Deploy Now
+          </a>
+    </div>
+  );
+}
+`);
+
+        updateHomePage(projectPath, packageRoot);
+
+        expect(fs.copyFileSync).toHaveBeenCalledWith(
+            path.join(packageRoot, 'src', 'install-button.tsx'),
+            componentPath
+        );
+
+        const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
+        expect(writtenContent).toContain('import { InstallButton } from "./install-button";');
+        expect(writtenContent).toContain('<InstallButton />');
+        expect(writtenContent).not.toContain('Deploy Now');
+        expect(fs.writeFileSync).toHaveBeenCalledWith(pagePath, expect.any(String), 'utf8');
     });
 });

@@ -11,7 +11,14 @@ This will follow the latest `create-next-app` command; so this means that you wi
 ```
 ✔ Would you like to use TypeScript? … No / Yes
 ```
-The experience should be the same in creating a Next.js app (just that this time, it's a PWA)
+The experience should be the same in creating a Next.js app (just that this time, it's a PWA). Extra flags are forwarded to `create-next-app`.
+
+```bash
+npx create-next-app-pwa my-app --yes
+npx create-next-app-pwa my-app --skip
+```
+
+`--skip` uses a TypeScript, Tailwind, `src/`, and App Router setup. Any other arguments are passed through to `create-next-app`.
 
 ## 📦 Describing the Script
 
@@ -25,7 +32,7 @@ It's a super straightforward process.
 That's basically it. As dumb as it gets.
 
 ## 🧱 Dependencies
-The script also installs [`@serwist/next`](https://www.npmjs.com/package/@serwist/next) and [`serwist`](https://www.npmjs.com/package/serwist) as dependencies. This is the service worker that enable your Next.js app to be a Progressive Web App.
+The script installs [`@serwist/next`](https://www.npmjs.com/package/@serwist/next) and [`serwist`](https://www.npmjs.com/package/serwist) into the generated project, using the same package manager `create-next-app` just used. This is the service worker that enables your Next.js app to be a Progressive Web App.
 
 ## 🪪 License
 This project is licensed under the MIT License. See the LICENSE file for more details.

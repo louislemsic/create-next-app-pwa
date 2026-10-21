@@ -13,13 +13,18 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install and test
+        run: |
+          npm ci
+          npm test
 
       - name: Configure npm for GitHub Packages
         run: |
@@ -28,15 +33,10 @@ jobs:
 
       - name: Publish package
         run: |
-          PKG_NAME=$(node -p "require('./package.json').name")
-          PKG_VERSION=$(node -p "require('./package.json').version")
           REPO_OWNER=$(echo $GITHUB_REPOSITORY | cut -d / -f 1)
           REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d / -f 2)
-          
-          # Update package.json with the correct name format for GitHub Packages
+
           npm pkg set name="@${REPO_OWNER}/${REPO_NAME}"
-          
-          # Publish the package
           npm publish --registry=https://npm.pkg.github.com
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,13 +1,24 @@
 #!/usr/bin/env node
 
-import { getProjectName, updateLayoutMetadata, updateNextConfig, copyPublicFolder, updateHomePage } from "./src/functions.js";
+import {
+    getProjectName,
+    updateLayoutMetadata,
+    updateNextConfig,
+    copyPublicFolder,
+    updateHomePage,
+    parseCliArgs,
+    getCreateNextAppArgs,
+    detectPackageManager,
+    getPackageManagerAddArgs,
+    runCommand,
+    SERWIST_DEPENDENCY,
+    SERWIST_DEV_DEPENDENCY,
+} from "./src/functions.js";
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-// Check if the script is run as part of npm install or npm i
-const isNpx = process.argv[1].includes('create-next-app-pwa');
+const isNpx = process.argv[1]?.includes('create-next-app-pwa');
 
 if (!isNpx) {
     console.log("This package is meant to be used with npx. Please use 'npx create-next-app-pwa' to create a new project.");
@@ -15,45 +26,55 @@ if (!isNpx) {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { skip, projectName: requestedName, extraArgs } = parseCliArgs();
 
 console.clear();
 console.log('Creating a new Next.js app with PWA setup...');
 
-// Get the project name from the command line arguments
-const projectName = await getProjectName();
-
-// Check if --skip flag is provided
-const skipFlag = process.argv.includes('--skip');
-
-// Run the create-next-app command with or without predefined options
-if (skipFlag) {
-    console.log('Using preconfigured setup with TypeScript, Tailwind, src directory, and no ESLint...');
-    execSync(`npx create-next-app@latest ${projectName} --ts --tailwind --src-dir --no-eslint --app --no-import-alias`, { stdio: 'inherit' });
-} else {
-    console.log('Running create-next-app with interactive prompts...');
-    execSync(`npx create-next-app@latest ${projectName}`, { stdio: 'inherit' });
-}
-
+const projectName = await getProjectName(requestedName);
 const projectPath = path.join(process.cwd(), projectName);
 
-updateNextConfig(projectPath);
+try {
+    if (skip) {
+        console.log('Using preconfigured setup with TypeScript, Tailwind, src directory, and no ESLint...');
+    } else {
+        console.log('Running create-next-app with interactive prompts...');
+    }
 
-// Install @serwist/next and serwist as dependencies
-console.log('Installing @serwist/next and serwist...');
+    runCommand('npx', getCreateNextAppArgs({ projectName, skip, extraArgs }));
 
-execSync(`cd ${projectName} && npm install @serwist/next@latest`, { stdio: 'inherit' });
-execSync(`cd ${projectName} && npm install -D serwist@latest`, { stdio: 'inherit' });
+    if (!fs.existsSync(projectPath)) {
+        throw new Error(`Expected project directory "${projectName}" was not created.`);
+    }
 
-copyPublicFolder(projectPath, path.join(__dirname, 'src', 'public'));
-updateHomePage(projectPath, __dirname);
+    updateNextConfig(projectPath);
 
-// Copy `sw.ts` from src to the root of the new project
-fs.copyFileSync(
-    path.join(__dirname, 'src', 'sw.ts'),
-    path.join(projectPath, 'sw.ts')
-);
+    const packageManager = detectPackageManager(projectPath);
+    console.log(`Installing @serwist/next and serwist with ${packageManager}...`);
 
-// Update the layout.tsx metadata
-updateLayoutMetadata(projectPath);
+    runCommand(
+        packageManager,
+        getPackageManagerAddArgs(packageManager, [SERWIST_DEPENDENCY]),
+        { cwd: projectPath }
+    );
+    runCommand(
+        packageManager,
+        getPackageManagerAddArgs(packageManager, [SERWIST_DEV_DEPENDENCY], { dev: true }),
+        { cwd: projectPath }
+    );
+
+    copyPublicFolder(projectPath, path.join(__dirname, 'src', 'public'));
+    updateHomePage(projectPath, __dirname);
+
+    fs.copyFileSync(
+        path.join(__dirname, 'src', 'sw.ts'),
+        path.join(projectPath, 'sw.ts')
+    );
+
+    updateLayoutMetadata(projectPath);
+} catch (error) {
+    console.error(`\nPWA setup failed: ${error.message}`);
+    process.exit(error.status ?? 1);
+}
 
 console.log(`\nPWA setup complete! Your Next.js PWA is ready to go.`);

@@ -1,4 +1,5 @@
 import readline from 'readline';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,9 +33,99 @@ const withSerwist = withSerwistInit({
 
 export default withSerwist(nextConfig);`;
 
+export const SERWIST_DEPENDENCY = '@serwist/next@^9';
+export const SERWIST_DEV_DEPENDENCY = 'serwist@^9';
+export const SKIP_FLAG = '--skip';
+export const DEPLOY_NOW_ANCHOR = /<a\b[^>]*>(?:(?!<\/a>)[\s\S])*Deploy Now\s*<\/a>/;
+export const NEXT_LOGO_SRC = /src=["']\/next\.svg["']/;
+
+const PACKAGE_MANAGER_LOCKFILES = [
+    ['bun.lock', 'bun'],
+    ['bun.lockb', 'bun'],
+    ['pnpm-lock.yaml', 'pnpm'],
+    ['yarn.lock', 'yarn'],
+    ['package-lock.json', 'npm'],
+];
+
 // Function to check if the project name is valid
 export function isValidProjectName(name) {
     return /^[a-zA-Z0-9-_]+$/.test(name);
+}
+
+export function parseCliArgs(argv = process.argv) {
+    const extraArgs = [];
+    let skip = false;
+    let projectName;
+
+    for (const arg of argv.slice(2)) {
+        if (arg === SKIP_FLAG) {
+            skip = true;
+            continue;
+        }
+
+        extraArgs.push(arg);
+    }
+
+    const nameIndex = extraArgs.findIndex((arg) => !arg.startsWith('-'));
+    if (nameIndex !== -1) {
+        projectName = extraArgs.splice(nameIndex, 1)[0];
+    }
+
+    return { skip, projectName, extraArgs };
+}
+
+export function getCreateNextAppArgs({ projectName, skip, extraArgs = [] }) {
+    const args = ['create-next-app@latest', projectName];
+
+    if (skip) {
+        args.push('--ts', '--tailwind', '--src-dir', '--no-eslint', '--app', '--no-import-alias');
+    }
+
+    args.push(...extraArgs);
+    return args;
+}
+
+export function detectPackageManager(projectPath) {
+    for (const [fileName, packageManager] of PACKAGE_MANAGER_LOCKFILES) {
+        if (fs.existsSync(path.join(projectPath, fileName))) {
+            return packageManager;
+        }
+    }
+
+    return 'npm';
+}
+
+export function getPackageManagerAddArgs(packageManager, packages, { dev = false } = {}) {
+    switch (packageManager) {
+        case 'npm':
+            return ['install', ...(dev ? ['-D'] : []), ...packages];
+        case 'yarn':
+        case 'pnpm':
+            return ['add', ...(dev ? ['-D'] : []), ...packages];
+        case 'bun':
+            return ['add', ...(dev ? ['-d'] : []), ...packages];
+        default:
+            throw new Error(`Unsupported package manager: ${packageManager}`);
+    }
+}
+
+export function runCommand(command, args, options = {}) {
+    const result = spawnSync(command, args, {
+        stdio: 'inherit',
+        ...options,
+    });
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    if (result.status !== 0) {
+        const error = new Error(`Command failed (${result.status}): ${command} ${args.join(' ')}`);
+        error.status = result.status ?? 1;
+        throw error;
+    }
+
+    return result;
 }
 
 // Function to prompt for project name
@@ -52,9 +143,8 @@ export function promptForProjectName() {
     });
 }
 
-export async function getProjectName() {
-    // Get the project name from the command line arguments and convert it to lowercase
-    let projectName = process.argv[2];
+export async function getProjectName(initialName = process.argv[2]) {
+    let projectName = initialName;
 
     while (!projectName || !isValidProjectName(projectName)) {
         if (projectName) {
@@ -176,12 +266,12 @@ export function updateNextConfig(projectPath) {
 export function copyPublicFolder(projectPath, templatePublicDir) {
     const publicDir = path.join(projectPath, 'public');
 
-    if (!fs.existsSync(publicDir)) {
-        fs.mkdirSync(publicDir, { recursive: true });
+    if (fs.existsSync(publicDir)) {
+        fs.rmSync(publicDir, { recursive: true, force: true });
     }
 
     fs.cpSync(templatePublicDir, publicDir, { recursive: true });
-    console.log('Updated public/ with PWA assets');
+    console.log('Replaced public/ with PWA assets');
 }
 
 export function updateHomePage(projectPath, packageRoot) {
@@ -206,18 +296,28 @@ export function updateHomePage(projectPath, packageRoot) {
         );
 
         let fileContent = fs.readFileSync(filePath, 'utf8');
+        const installButtonImport = 'import { InstallButton } from "./install-button";';
 
         if (!fileContent.includes('InstallButton')) {
-            fileContent = fileContent.replace(
-                /import Image from ["']next\/image["'];?/,
-                (match) => `${match}\nimport { InstallButton } from "./install-button";`
-            );
+            if (/import Image from ["']next\/image["'];?/.test(fileContent)) {
+                fileContent = fileContent.replace(
+                    /import Image from ["']next\/image["'];?/,
+                    (match) => `${match}\n${installButtonImport}`
+                );
+            } else {
+                fileContent = `${installButtonImport}\n${fileContent}`;
+            }
 
-            fileContent = fileContent.replace(
-                /<a[\s\S]*?Deploy Now\s*<\/a>/,
-                '<InstallButton />'
-            );
+            if (DEPLOY_NOW_ANCHOR.test(fileContent)) {
+                fileContent = fileContent.replace(DEPLOY_NOW_ANCHOR, '<InstallButton />');
+            } else {
+                console.warn(
+                    'Could not find the create-next-app "Deploy Now" button. Add <InstallButton /> to the homepage manually.'
+                );
+            }
         }
+
+        fileContent = fileContent.replace(NEXT_LOGO_SRC, 'src="/svgs/next.svg"');
 
         fs.writeFileSync(filePath, fileContent, 'utf8');
         console.log(`Updated ${path.basename(filePath)} with an Install button`);

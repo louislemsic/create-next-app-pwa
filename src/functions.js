@@ -176,12 +176,12 @@ export function updateNextConfig(projectPath) {
 export function copyPublicFolder(projectPath, templatePublicDir) {
     const publicDir = path.join(projectPath, 'public');
 
-    if (!fs.existsSync(publicDir)) {
-        fs.mkdirSync(publicDir, { recursive: true });
+    if (fs.existsSync(publicDir)) {
+        fs.rmSync(publicDir, { recursive: true, force: true });
     }
 
     fs.cpSync(templatePublicDir, publicDir, { recursive: true });
-    console.log('Updated public/ with PWA assets');
+    console.log('Replaced public/ with PWA assets');
 }
 
 export function updateHomePage(projectPath, packageRoot) {
@@ -213,11 +213,17 @@ export function updateHomePage(projectPath, packageRoot) {
                 (match) => `${match}\nimport { InstallButton } from "./install-button";`
             );
 
+            // Only replace the Deploy Now <a>, not earlier links such as Templates.
             fileContent = fileContent.replace(
-                /<a[\s\S]*?Deploy Now\s*<\/a>/,
+                /<a\b[^>]*>(?:(?!<\/a>)[\s\S])*Deploy Now\s*<\/a>/,
                 '<InstallButton />'
             );
         }
+
+        fileContent = fileContent.replace(
+            /src=["']\/next\.svg["']/,
+            'src="/svgs/next.svg"'
+        );
 
         fs.writeFileSync(filePath, fileContent, 'utf8');
         console.log(`Updated ${path.basename(filePath)} with an Install button`);

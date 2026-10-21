@@ -190,21 +190,22 @@ suite('Function: copyPublicFolder', () => {
         vi.clearAllMocks();
     });
 
-    test('should copy the template public folder into the project public directory', () => {
+    test('should replace the generated public folder with the template', () => {
         vi.mocked(fs.existsSync).mockReturnValueOnce(true);
 
         copyPublicFolder(projectPath, templatePublicDir);
 
+        expect(fs.rmSync).toHaveBeenCalledWith(publicDir, { recursive: true, force: true });
         expect(fs.cpSync).toHaveBeenCalledWith(templatePublicDir, publicDir, { recursive: true });
         expect(fs.mkdirSync).not.toHaveBeenCalled();
     });
 
-    test('should create the public directory if it does not exist', () => {
+    test('should copy the template when public does not exist', () => {
         vi.mocked(fs.existsSync).mockReturnValueOnce(false);
 
         copyPublicFolder(projectPath, templatePublicDir);
 
-        expect(fs.mkdirSync).toHaveBeenCalledWith(publicDir, { recursive: true });
+        expect(fs.rmSync).not.toHaveBeenCalled();
         expect(fs.cpSync).toHaveBeenCalledWith(templatePublicDir, publicDir, { recursive: true });
     });
 });
@@ -226,6 +227,7 @@ suite('Function: updateHomePage', () => {
 export default function Home() {
   return (
     <div>
+          <Image src="/next.svg" alt="Next.js logo" width={100} height={20} />
           <a
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background"
             href="https://vercel.com/new"
@@ -255,7 +257,49 @@ export default function Home() {
         const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
         expect(writtenContent).toContain('import { InstallButton } from "./install-button";');
         expect(writtenContent).toContain('<InstallButton />');
+        expect(writtenContent).toContain('src="/svgs/next.svg"');
         expect(writtenContent).not.toContain('Deploy Now');
+        expect(writtenContent).not.toContain('src="/next.svg"');
         expect(fs.writeFileSync).toHaveBeenCalledWith(pagePath, expect.any(String), 'utf8');
+    });
+
+    test('should not replace earlier links when inserting InstallButton', () => {
+        vi.mocked(fs.existsSync).mockReturnValueOnce(true);
+        vi.mocked(fs.readFileSync).mockReturnValueOnce(`import Image from "next/image";
+
+export default function Home() {
+  return (
+    <div>
+      <Image src="/next.svg" alt="Next.js logo" width={100} height={20} />
+      <p>
+        Head over to{" "}
+        <a href="https://vercel.com/templates">Templates</a>{" "}
+        or the{" "}
+        <a href="https://nextjs.org/learn">Learning</a>{" "}
+        center.
+      </p>
+      <div>
+        <a href="https://vercel.com/new">
+          <Image src="/vercel.svg" alt="Vercel logomark" width={16} height={14} />
+          Deploy Now
+        </a>
+        <a href="https://nextjs.org/docs">Documentation</a>
+      </div>
+    </div>
+  );
+}
+`);
+
+        updateHomePage(projectPath, packageRoot);
+
+        const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1];
+        expect(writtenContent).toContain('Templates');
+        expect(writtenContent).toContain('Learning');
+        expect(writtenContent).toContain('Documentation');
+        expect(writtenContent).toContain('<InstallButton />');
+        expect(writtenContent).toContain('src="/svgs/next.svg"');
+        expect(writtenContent).not.toContain('Deploy Now');
+        expect(writtenContent.match(/<p>/g)).toHaveLength(1);
+        expect(writtenContent.match(/<\/p>/g)).toHaveLength(1);
     });
 });

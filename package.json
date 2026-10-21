@@ -1,11 +1,11 @@
 {
   "name": "create-next-app-pwa",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "The script for the npx create-next-app-pwa command. Making it easier for everyone to create a Next.js Progressive Web App.",
   "main": "index.js",
   "type": "module",
   "bin": {
-    "create-next-app-pwa": "./index.js"
+    "create-next-app-pwa": "index.js"
   },
   "scripts": {
     "preinstall": "node -e \"if(process.env.npm_config_global){console.error('Please use npx to run this package instead of installing it.'); process.exit(1)}\"",
@@ -30,7 +30,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cifelse/create-next-app-pwa.git"
+    "url": "git+https://github.com/cifelse/create-next-app-pwa.git"
   },
   "homepage": "https://github.com/cifelse/create-next-app-pwa#readme",
   "files": [
